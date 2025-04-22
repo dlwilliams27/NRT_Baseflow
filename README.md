@@ -3,7 +3,7 @@ The following code was used for the computation of Eckhardt baseflow and extract
 
 ## Part 1: USGS Streamflow Inputs into Eckhardt Baseflow
 Required dataset: [CAMELs] (https://gdex.ucar.edu/dataset/camels.html) </br>
-Dependent Libraries: Baseflow </br>
+Dependent Libraries: [Baseflow] (https://github.com/xiejx5/baseflow) by xiejx5 </br>
 Eckhardt Code.py is a script which requires the input of a USGS streamflow file and converts it into a
 time series formatted baseflow csv file utilizing the Eckhardt digital filter. 
 
