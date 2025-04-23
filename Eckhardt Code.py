@@ -10,8 +10,6 @@ import pandas as pd
 from numba import njit
 import numpy as np
 import os
-from baseflow import param_estimate
-import matplotlib.pyplot as plt
 
 #determining streamflow column 
 def find_numeric_column(df, min_valid_values=30):
@@ -33,14 +31,11 @@ def find_numeric_column(df, min_valid_values=30):
 folder_path=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Coding\NRT Eckhardt Project\USGS_Streamflow\Region_3'
 output_folder=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Coding\NRT Eckhardt Project\Eckhardt'
 
-#Iteration process
+#Iteration process, remove "loop and if" for one time series
 for filename in os.listdir(folder_path):
     if filename.endswith(".txt"):
-        #updating directory
-        os.chdir('c:\\Users\\Delanie Williams\\OneDrive - The University of Alabama\\Coding\\NRT Eckhardt Project')
         path= os.path.join(folder_path, filename)
         trial=pd.read_csv(path, sep=" ",header=None,on_bad_lines='skip')
-        print(trial.head())
         q_col=find_numeric_column(trial)
         if q_col is None: 
             print(f"Skipping {filename}- no good streamflow column")
