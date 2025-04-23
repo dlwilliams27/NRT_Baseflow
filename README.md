@@ -13,6 +13,7 @@ The following code was used for the computation of Eckhardt baseflow and extract
 **Outputs: Eckhardt baseflow time-series in m3/s in a .csv file** </br>
 Required datasets: [CAMELs] (https://gdex.ucar.edu/dataset/camels.html) **or** any other streamflow timeseries. </br>
 Dependent Libraries: [Baseflow] (https://github.com/xiejx5/baseflow) by xiejx5 </br>
+Required inputs: local input folder path, local output folder path
 For set up, use the following: 
 ```
 pip install pandas baseflow
