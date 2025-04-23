@@ -29,7 +29,7 @@ Required datasets: </br>
 Required inputs: list of USGS gage IDs, local crosstable path, desired output folder </br>
 For set-up, use the following:
 ```
-pip install pandas dask s3fs xarray pyarrow baseflow matplotlib
+pip install pandas dask s3fs xarray pyarrow
 ```
 NWM_GW_Retrieval.py sets up a series of functions for the processing and extraction of baseflow data from the
 retrospective NWM database. Accessed databases can be any of the available versions within the amazon web-service.
