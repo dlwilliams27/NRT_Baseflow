@@ -10,10 +10,10 @@ The following code was used for the computation of Eckhardt baseflow and extract
 
 
 ## Part 1: USGS Streamflow into Eckhardt Baseflow
-**Outputs: Eckhardt baseflow time-series in m3/s in a .csv file**
-Required dataset: [CAMELs] (https://gdex.ucar.edu/dataset/camels.html) </br>
-Required inputs: 
+**Outputs: Eckhardt baseflow time-series in m3/s in a .csv file** </br>
+Required datasets: [CAMELs] (https://gdex.ucar.edu/dataset/camels.html) **or** any other streamflow timeseries. </br>
 Dependent Libraries: [Baseflow] (https://github.com/xiejx5/baseflow) by xiejx5 </br>
+For set up, use the following: 
 ```
 pip install pandas baseflow
 ```
@@ -25,7 +25,7 @@ time series formatted baseflow csv file utilizing the Eckhardt digital filter.
 **Outputs: NWM baseflow time series in cfs in a .parquet file**
 Required datasets: </br>
 Required inputs: list of USGS gage IDs, local crosstable path, desired output folder </br>
-Dependent Libraries: </br>
+For set-up, use the following:
 ```
 pip install pandas dask s3fs xarray pyarrow baseflow matplotlib
 ```
