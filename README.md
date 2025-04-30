@@ -35,3 +35,12 @@ NWM_GW_Retrieval.py sets up a series of functions for the processing and extract
 retrospective NWM database. Accessed databases can be any of the available versions within the amazon web-service.
 An example implementation of these functions is in the NWM_example.py.
 
+The NWM_GW_Retrieval code can be altered to extract other output variables from the dataset. 
+```
+print(ds)
+```
+Using one of the attributes/variables printed, the following functions can be altered: Extract_GW_NWM
+```
+qBucket=ds['qBucket'] --> q=ds['streamflow']
+```
+
