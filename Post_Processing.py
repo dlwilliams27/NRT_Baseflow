@@ -16,6 +16,7 @@ usgs_path= path.Path(usgs_file_dir)
 
 nwm_dic={}
 usgs_dic={}
+eck_dic={}
 nwm_path_list=[]
 usgs_path_list=[]
 
@@ -40,17 +41,18 @@ def nwm_processing(nwm_path, nwm_path_list):
                 nwm = ds.to_dataframe()
                 nwm['baseflow'] = nwm['q_lateral'] + nwm['qBucket']
                 nwm.reset_index(inplace=True)
-                nwm['time'] = nwm['time'].dt.date
-                nwm_avg_base = nwm.groupby('time', sort=True)['baseflow'].mean()
-                nwm_avg_stream = nwm.groupby('time', sort=True)['streamflow'].mean()
+                nwm['date'] = nwm['time'].dt.date
+                nwm_avg_base = nwm.groupby('date', sort=True)['baseflow'].mean()
+                nwm_avg_stream = nwm.groupby('date', sort=True)['streamflow'].mean()
                 nwm_tot = pd.merge(nwm_avg_base, nwm_avg_stream, left_index=True, right_index=True)
-                nwm_dic['gage'] = nwm_tot
+                nwm_dic[gage] = nwm_tot
             else:
                 print(f"No match for file {nc}.")
     return nwm_dic
 
 def usgs_processing(usgs_path):
-    for folder in usgs_path.iterdir():
+    stream_path= usgs_path / "USGS_Streamflow_2024"
+    for folder in stream_path.iterdir():
         match1=re.match('(\d+)')
         if match1:
             path2= usgs_path / f'{match1.group(1)}'
@@ -68,10 +70,19 @@ def usgs_processing(usgs_path):
                 usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
                 usgs = usgs[['date', 'Q']]
                 usgs_dic['gage2'] = usgs
+    return usgs_dic
 
-
-    eck=pd.read_csv(file_path)
-
+def eck_processing(usgs_path):
+    eck_path = usgs_path / "Eckhardt_2024"
+    all_eck_files=eck_path.glob('.csv')
+    for file in all_eck_files:
+        match3 = re.match("(\d+)_streamflow_qc_processed")
+        if match3:
+            gage=match3.group(1)
+            eck=pd.read_csv(file)
+            eck['date'] = pd.to_datetime(eck['date'])
+            eck_dic[gage]=eck
+    return eck_dic
 '''
 def merging():
 
