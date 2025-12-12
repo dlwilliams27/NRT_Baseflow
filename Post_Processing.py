@@ -15,7 +15,9 @@ usgs_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\R
 usgs_path= path.Path(usgs_file_dir)
 
 nwm_dic={}
+usgs_dic={}
 nwm_path_list=[]
+usgs_path_list=[]
 
 #extract and process data from each nwm.nc file
 #output in a dictionary, gage:df
@@ -24,7 +26,7 @@ def nwm_processing(nwm_path, nwm_path_list):
     for folder in nwm_path.iterdir():
         match1=re.match('region_(\d|\d+)')
         if match1:
-            path= nwm_path \ f'{match[0]}'
+            path= nwm_path / f'{match1[0]}'
             nwm_path_list.append(path)
 
     #iterating through files in each region folder
@@ -47,8 +49,42 @@ def nwm_processing(nwm_path, nwm_path_list):
                 print(f"No match for file {nc}.")
     return nwm_dic
 
+def usgs_processing(usgs_path):
+    for folder in usgs_path.iterdir():
+        match1=re.match('(\d+)')
+        if match1:
+            path2= usgs_path / f'{match1.group(1)}'
+            usgs_path_list.append(path2)
+
+    for subfolder in nwm_path_list:
+        all_files=subfolder.glob('.txt')
+        for txt in all_files:
+            match2 = re.match("(\d+)_streamflow_qc")
+            if match2:
+                gage2=match2.group(1)
+                usgs = pd.read_csv(txt, sep=' ', on_bad_lines='skip')
+                usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'Q', 'nAn']
+                usgs = usgs[['gage', 'year', 'month', 'day', 'Q']]
+                usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
+                usgs = usgs[['date', 'Q']]
+                usgs_dic['gage2'] = usgs
 
 
+    eck=pd.read_csv(file_path)
+
+'''
+def merging():
+
+def stats():
+
+def graphs():'''
+
+
+if __name__ == '__main__':
+    file_path=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\Eckhardt_2024\01013500_streamflow_qc_processed.csv"
+    file_path2=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\USGS_Streamflow_2024\01\01013500_streamflow_qc.txt"
+
+    #eck_tot=pd.merge(eck, usgs, on='time', how='inner')
 
 
 
