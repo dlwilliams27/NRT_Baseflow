@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import netCDF4 as nc
 
 #creating initial file paths
-nwm_file_dir=r'C:\Users\Delanie Williams\PycharmProjects\NRT_Eckhardt_Project_2025\NWM'
+nwm_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\NWM_Results'
 nwm_path= path.Path(nwm_file_dir)
 usgs_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results'
 usgs_path= path.Path(usgs_file_dir)
@@ -25,16 +25,17 @@ usgs_path_list=[]
 def nwm_processing(nwm_path, nwm_path_list):
     #create list of nwm region folders
     for folder in nwm_path.iterdir():
-        match1=re.match('region_(\d|\d+)')
+        match1=re.match(r'region_(\d+)',folder.name)
         if match1:
             path= nwm_path / f'{match1[0]}'
             nwm_path_list.append(path)
-
     #iterating through files in each region folder
     for subfolder in nwm_path_list:
-        all_files=subfolder.glob('.nc')
-        for nc in all_files:
-            match = re.match("NWM_gage_(\d+)")
+        # issue is that these are glob objects and not iterable, need them to be pure paths
+        for file in subfolder.glob('.nc'):
+            print("The files in the subfolder", file)
+            match = re.match(r"NWM_gage_(\d+)", file.name)
+            print("The match is:",match)
             if match:
                 gage = match[1]
                 ds=xr.open_dataset(nc)
@@ -53,7 +54,7 @@ def nwm_processing(nwm_path, nwm_path_list):
 def usgs_processing(usgs_path):
     stream_path= usgs_path / "USGS_Streamflow_2024"
     for folder in stream_path.iterdir():
-        match1=re.match('(\d+)')
+        match1=re.match(r'(\d+)',folder.name)
         if match1:
             path2= usgs_path / f'{match1.group(1)}'
             usgs_path_list.append(path2)
@@ -61,7 +62,7 @@ def usgs_processing(usgs_path):
     for subfolder in nwm_path_list:
         all_files=subfolder.glob('.txt')
         for txt in all_files:
-            match2 = re.match("(\d+)_streamflow_qc")
+            match2 = re.match(r"(\d+)_streamflow_qc", txt.name)
             if match2:
                 gage2=match2.group(1)
                 usgs = pd.read_csv(txt, sep=' ', on_bad_lines='skip')
@@ -76,26 +77,22 @@ def eck_processing(usgs_path):
     eck_path = usgs_path / "Eckhardt_2024"
     all_eck_files=eck_path.glob('.csv')
     for file in all_eck_files:
-        match3 = re.match("(\d+)_streamflow_qc_processed")
+        match3 = re.match(r"(\d+)_streamflow_qc_processed", file.name)
         if match3:
             gage=match3.group(1)
             eck=pd.read_csv(file)
             eck['date'] = pd.to_datetime(eck['date'])
             eck_dic[gage]=eck
     return eck_dic
-'''
-def merging():
-
-def stats():
-
-def graphs():'''
 
 
 if __name__ == '__main__':
-    file_path=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\Eckhardt_2024\01013500_streamflow_qc_processed.csv"
-    file_path2=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\USGS_Streamflow_2024\01\01013500_streamflow_qc.txt"
-
-    #eck_tot=pd.merge(eck, usgs, on='time', how='inner')
+    nwm_dic=nwm_processing(nwm_path, nwm_path_list)
+    usgs_dic=usgs_processing(usgs_path)
+    eck_dic=eck_processing(usgs_path)
+    print(nwm_dic)
+    print(usgs_dic)
+    print(eck_dic)
 
 
 
