@@ -7,6 +7,7 @@ import re
 import pathlib as path
 import matplotlib.pyplot as plt
 import netCDF4 as nc
+from collections import defaultdict
 
 #creating initial file paths
 nwm_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\NWM_Results'
@@ -45,6 +46,7 @@ def nwm_processing(nwm_path, nwm_path_list):
                 nwm_avg_base = nwm.groupby('date', sort=True)['baseflow'].mean()
                 nwm_avg_stream = nwm.groupby('date', sort=True)['streamflow'].mean()
                 nwm_tot = pd.merge(nwm_avg_base, nwm_avg_stream, left_index=True, right_index=True)
+                nwm_tot.reset_index(inplace=True, columns='date')
                 nwm_dic[gage] = nwm_tot
             else:
                 print(f"No match for file {nc}.")
@@ -76,6 +78,7 @@ def usgs_processing(usgs_path):
                 usgs.dropna(inplace=True)
                 usgs['day']=usgs['day'].astype(int)
                 usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
+                usgs.set_index('date', inplace=True)
                 usgs = usgs[['date', 'Q']]
                 usgs_dic[gage2] = usgs
     return usgs_dic
@@ -90,16 +93,73 @@ def eck_processing(usgs_path):
             gage=match3.group(1)
             eck=pd.read_csv(file)
             eck['date'] = pd.to_datetime(eck['date'])
+            eck.set_index('date', inplace=True)
             eck_dic[gage]=eck
     return eck_dic
+
+def merge_dicts(nwm_dic, usgs_dic, eck_dic):
+    complete=[]
+    list=[nwm_dic, usgs_dic, eck_dic]
+    common_keys= set(nwm_dic).intersection(usgs_dic, eck_dic)
+    for key in common_keys:
+        df1=nwm_dic[key].copy()
+        df2=usgs_dic[key].copy()
+        df3=eck_dic[key].copy()
+        df3['gage']=key
+        middle=pd.merge(df1, df2, left_index=True, right_index=True)
+        final=pd.merge(middle, df3, left_index=True, right_index=True)
+        complete.append(final)
+        print(final)
+    pd.concat(complete)
+    return final
+
+def stats
+
+nwm_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\NWM_Results\region_3\NWM_gage_2046000.nc"
+usgs_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\USGS_Streamflow_2024\03\02046000_streamflow_qc.txt"
+eck_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\Eckhardt_2024\02046000_streamflow_qc_processed.csv"
+
+ds=xr.open_dataset(nwm_ex)
+nwm = ds.to_dataframe()
+nwm['baseflow'] = nwm['q_lateral'] + nwm['qBucket']
+nwm.reset_index(inplace=True)
+nwm['date'] = nwm['time'].dt.date
+nwm_avg_base = nwm.groupby('date', sort=True)['baseflow'].mean()
+nwm_avg_stream = nwm.groupby('date', sort=True)['streamflow'].mean()
+nwm_tot = pd.merge(nwm_avg_base, nwm_avg_stream, left_index=True, right_index=True)
+nwm_dic_sam= {'02046000':nwm_tot}
+
+usgs = pd.read_csv(usgs_ex, sep=' ', on_bad_lines='skip')
+if len(usgs.columns) == 7:
+    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'Q', 'nAn']
+elif len(usgs.columns) == 8:
+    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'Q', 'nAn']
+elif len(usgs.columns) == 9:
+    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'Q', 'nAn']
+elif len(usgs.columns) == 10:
+    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'NAn', 'Q', 'nAn']
+usgs = usgs[['gage', 'year', 'month', 'day', 'Q']]
+usgs.dropna(inplace=True)
+usgs['day']=usgs['day'].astype(int)
+usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
+usgs = usgs[['date', 'Q']]
+usgs.set_index('date', inplace=True)
+usgs_dic_sam= {'02046000':usgs}
+
+eck=pd.read_csv(eck_ex)
+eck['date'] = pd.to_datetime(eck['date'])
+eck.set_index('date', inplace=True)
+eck_dic_sam= {'02046000': eck}
+print(nwm_dic_sam['02046000'])
+print(usgs_dic_sam['02046000'])
+print(eck_dic_sam['02046000'])
 
 if __name__ == '__main__':
     #nwm_dic=nwm_processing(nwm_path, nwm_path_list)
     #usgs_dic=usgs_processing(usgs_path)
-    eck_dic=eck_processing(usgs_path)
-    print(nwm_dic)
-    print(usgs_dic)
-    print(eck_dic)
+    #eck_dic=eck_processing(usgs_path)
+    all=merge_dicts(nwm_dic=nwm_dic_sam, usgs_dic=usgs_dic_sam, eck_dic=eck_dic_sam)
+    print(new)
 
 
 
