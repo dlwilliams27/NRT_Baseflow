@@ -115,6 +115,57 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
 
 def stats
 
+def seasons(df):
+    df.iterrows()
+        if df['month']= 12 or 1 or 2:
+            df['season']=1
+        elif df['month']== 3 or 4 or 5:
+            df['season']=2
+        elif df['month']== 6 or 7 or 8:
+            df['season']=3
+        else:
+            df['season']=4
+    return df
+
+def stats(final_df, common_keys):
+    final_df.reset_index(inplace=True)
+    final_df['year']=final_df['date'].dt.year
+    final_df['month']=final_df['date'].dt.month
+    final_df=seasons(final_df)
+    final_stats=pd.DataFrame()
+    grouped=final_df.groupby('gage')
+    #overall stats
+    for name, group in grouped:
+        final_stats['gage']=name
+        final_stats['nse_o']=he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['kge_12_o'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['rmse_o']=he.rmse(group['baseflow'],group['Eckhardt'])
+        final_stats['pearson_o']=he.pearson_r(group['baseflow'],group['Eckhardt'])
+    overall_path= base_path / 'Overall_stats.csv'
+    overall_path.parent.mkdir(parents=True, exist_ok=True)
+    final_stats.to_csv(overall_path, index=True)
+    #year stats
+    grouped=final_df.groupby(['gage', 'year'])
+    final_stats['gage'] = name
+    final_stats['nse_y'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+    final_stats['kge_12_y'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+    final_stats['rmse_y'] = he.rmse(group['baseflow'], group['Eckhardt'])
+    final_stats['pearson_y'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
+    year_path = base_path / 'year_stats.csv'
+    year_path.parent.mkdir(parents=True, exist_ok=True)
+    final_stats.to_csv(year_path, index=True)
+    #seasonal stats #want this to be grouped with w=(12,1,2)=Dec,Jan,Feb s=(3,4,5)=Mar,Apr,May su=(6,7,8)=Jun,Jul,Aug f=(9,10,11)=Sep, Oct, Nov
+    grouped=final_df.groupby(['gage', 'season'])
+    final_stats['gage'] = name
+    final_stats['nse_s'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+    final_stats['kge_12_s'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+    final_stats['rmse_s'] = he.rmse(group['baseflow'], group['Eckhardt'])
+    final_stats['pearson_s'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
+    season_path = base_path / 'seasonal_stats.csv'
+    season_path.parent.mkdir(parents=True, exist_ok=True)
+    final_stats.to_csv(season_path, index=True)
+
+#for example purposes and so I don't have to run all the previous functions
 nwm_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\NWM_Results\region_3\NWM_gage_2046000.nc"
 usgs_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\USGS_Streamflow_2024\03\02046000_streamflow_qc.txt"
 eck_ex=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results\Eckhardt_2024\02046000_streamflow_qc_processed.csv"
