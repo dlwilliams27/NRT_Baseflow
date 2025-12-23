@@ -1,5 +1,5 @@
 import pathlib
-import hydrostats
+import HydroErr as he
 import numpy as np
 import xarray as xr
 import pandas as pd
@@ -14,6 +14,8 @@ nwm_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Re
 nwm_path= path.Path(nwm_file_dir)
 usgs_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\Initial_Results'
 usgs_path= path.Path(usgs_file_dir)
+base_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project'
+base_path= path.Path(base_dir)
 
 nwm_dic={}
 usgs_dic={}
@@ -111,9 +113,14 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
         complete.append(final)
         print(final)
     pd.concat(complete)
-    return final
+    complete['BFIobs']=(complete['Eckhardt'].astype(float))/complete['Q'] #issue with data types here
+    complete['BFIsim']=complete['baseflow']/complete['streamflow']
 
-def stats
+    finaloutput_path = base_path / 'Complete_inputs4stats.csv'
+    finaloutput_path.parent.mkdir(parents=True, exist_ok=True)
+    complete.to_csv(finaloutput_path, index=True)
+
+    return final, common_keys
 
 def seasons(df):
     df.iterrows()
@@ -125,7 +132,7 @@ def seasons(df):
             df['season']=3
         else:
             df['season']=4
-    return df
+    #return df not working???
 
 def stats(final_df, common_keys):
     final_df.reset_index(inplace=True)
@@ -146,21 +153,23 @@ def stats(final_df, common_keys):
     final_stats.to_csv(overall_path, index=True)
     #year stats
     grouped=final_df.groupby(['gage', 'year'])
-    final_stats['gage'] = name
-    final_stats['nse_y'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
-    final_stats['kge_12_y'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
-    final_stats['rmse_y'] = he.rmse(group['baseflow'], group['Eckhardt'])
-    final_stats['pearson_y'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
+    # how to iterate with two "names"
+        final_stats['gage'] = name
+        final_stats['nse_y'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['kge_12_y'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['rmse_y'] = he.rmse(group['baseflow'], group['Eckhardt'])
+        final_stats['pearson_y'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
     year_path = base_path / 'year_stats.csv'
     year_path.parent.mkdir(parents=True, exist_ok=True)
     final_stats.to_csv(year_path, index=True)
     #seasonal stats #want this to be grouped with w=(12,1,2)=Dec,Jan,Feb s=(3,4,5)=Mar,Apr,May su=(6,7,8)=Jun,Jul,Aug f=(9,10,11)=Sep, Oct, Nov
     grouped=final_df.groupby(['gage', 'season'])
-    final_stats['gage'] = name
-    final_stats['nse_s'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
-    final_stats['kge_12_s'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
-    final_stats['rmse_s'] = he.rmse(group['baseflow'], group['Eckhardt'])
-    final_stats['pearson_s'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
+    #how to iterate with two "names"
+        final_stats['gage'] = name
+        final_stats['nse_s'] = he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['kge_12_s'] = he.kge_2012(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy())
+        final_stats['rmse_s'] = he.rmse(group['baseflow'], group['Eckhardt'])
+        final_stats['pearson_s'] = he.pearson_r(group['baseflow'], group['Eckhardt'])
     season_path = base_path / 'seasonal_stats.csv'
     season_path.parent.mkdir(parents=True, exist_ok=True)
     final_stats.to_csv(season_path, index=True)
@@ -209,8 +218,8 @@ if __name__ == '__main__':
     #nwm_dic=nwm_processing(nwm_path, nwm_path_list)
     #usgs_dic=usgs_processing(usgs_path)
     #eck_dic=eck_processing(usgs_path)
-    all=merge_dicts(nwm_dic=nwm_dic_sam, usgs_dic=usgs_dic_sam, eck_dic=eck_dic_sam)
-    print(new)
+    all, common_keys=merge_dicts(nwm_dic=nwm_dic_sam, usgs_dic=usgs_dic_sam, eck_dic=eck_dic_sam)
+    stats(all, common_keys)
 
 
 
