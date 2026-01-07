@@ -17,6 +17,7 @@ usgs_path= path.Path(usgs_file_dir)
 base_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project'
 base_path= path.Path(base_dir)
 
+#initializing dictionaries and lists
 nwm_dic={}
 usgs_dic={}
 eck_dic={}
@@ -104,6 +105,7 @@ def eck_processing(usgs_path):
             eck_dic[gage]=eck
     return eck_dic
 
+#merge together NWM, USGS, and Eckhardt dfs based off of gage ID key
 def merge_dicts(nwm_dic, usgs_dic, eck_dic):
     complete=[]
     common_keys= set(nwm_dic).intersection(usgs_dic, eck_dic)
@@ -127,6 +129,7 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
     complete.to_csv(finaloutput_path, index=True)
     return complete, common_keys
 
+#creates a new column which identifies the season of the year
 def seasons(df):
     conditions = [
         df['month'].isin([12, 1, 2]),
@@ -138,19 +141,20 @@ def seasons(df):
     df['season'] = np.select(conditions, choices, default=np.nan)
     return df
 
+#processes KGE, NSE, and Pearson R for all time frames and outputting
 def stats(final_df):
+    #resets date index, and creates year, month, and season columns
     final_df.reset_index(inplace=True)
     final_df['year']=final_df['date'].dt.year
     final_df['month']=final_df['date'].dt.month
     final_df=seasons(final_df)
-    final_stats=pd.DataFrame()
 
     #empty list
     rows=[]
     rows2=[]
     rows3=[]
 
-    # overall stats
+    #RMSE, KGE, and Pearson R calculation for all time
     grouped=final_df.groupby(['gage'])
     for gage, group in grouped:
         rows.append({'gage': gage, 'nse_o': he.nse(group['baseflow'].to_numpy(), group['Eckhardt'].to_numpy()),
@@ -163,7 +167,7 @@ def stats(final_df):
     overall_path.parent.mkdir(parents=True, exist_ok=True)
     overall_stats.to_csv(overall_path, index=True)
 
-    #year stats
+    #RMSE, KGE, and Pearson R calculation for each year
     grouped2=final_df.groupby(['gage', 'year'])
     for (gage, year), group2 in grouped2:
         rows2.append({'gage': gage, 'year': year, 'nse_o': he.nse(group2['baseflow'].to_numpy(), group2['Eckhardt'].to_numpy()),
@@ -176,7 +180,7 @@ def stats(final_df):
     year_path.parent.mkdir(parents=True, exist_ok=True)
     year_stats.to_csv(year_path, index=True)
 
-    #adds in season column
+    #RMSE, KGE, and Pearson R calculation for each season
     final_df=seasons(final_df)
     grouped3=final_df.groupby(['gage', 'season'])
     for (gage, season), group3 in grouped3:
