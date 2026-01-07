@@ -62,27 +62,32 @@ def usgs_processing(usgs_path):
         if match1:
             path2= stream_path / f'{match1.group(1)}'
             usgs_path_list.append(path2)
-    for subfolder in usgs_path_list:
-        for file in subfolder.glob('*.txt'):
-            match2 = re.match(r"(\d+)_streamflow_qc", file.name)
-            if match2:
-                gage2=match2.group(1)
-                usgs = pd.read_csv(file, sep=' ', on_bad_lines='skip')
-                if len(usgs.columns) == 7:
-                    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'Q', 'nAn']
-                elif len(usgs.columns) == 8:
-                    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'Q', 'nAn']
-                elif len(usgs.columns) == 9:
-                    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'Q', 'nAn']
-                elif len(usgs.columns) == 10:
-                    usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'NAn', 'Q', 'nAn']
-                usgs = usgs[['gage', 'year', 'month', 'day', 'Q']]
-                usgs.dropna(inplace=True)
-                usgs['day']=usgs['day'].astype(int)
-                usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
-                usgs.set_index('date', inplace=True)
-                usgs = usgs[['date', 'Q']]
-                usgs_dic[gage2] = usgs
+            for subfolder in usgs_path_list:
+                for file in subfolder.glob('*.txt'):
+                    try:
+                        match2 = re.match(r"(\d+)_streamflow_qc", file.name)
+                        if match2:
+                            print("match:", match2.group(0))
+                            gage2=match2.group(1)
+                            usgs = pd.read_csv(file, sep=' ', on_bad_lines='skip')
+                            if len(usgs.columns) == 7:
+                                usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'Q', 'nAn']
+                            elif len(usgs.columns) == 8:
+                                usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'Q', 'nAn']
+                            elif len(usgs.columns) == 9:
+                                usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'Q', 'nAn']
+                            elif len(usgs.columns) == 10:
+                                usgs.columns = ['gage', 'year', 'month', 'day', 'NAN', 'nan', 'NaN', 'NAn', 'Q', 'nAn']
+                            usgs = usgs[['gage', 'year', 'month', 'day', 'Q']]
+                            usgs.dropna(inplace=True)
+                            usgs['day']=usgs['day'].astype(int)
+                            usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
+                            usgs['date2'] = pd.to_datetime(usgs[['year', 'month', 'day']])
+                            usgs.set_index('date2', inplace=True)
+                            usgs = usgs[['date', 'Q']]
+                            usgs_dic[gage2] = usgs
+                    except KeyError:
+                        print(f"Column indexing error for file: {file}")
     return usgs_dic
 
 #process through each transformed eckhardt baseflow file
@@ -101,7 +106,6 @@ def eck_processing(usgs_path):
 
 def merge_dicts(nwm_dic, usgs_dic, eck_dic):
     complete=[]
-    list=[nwm_dic, usgs_dic, eck_dic]
     common_keys= set(nwm_dic).intersection(usgs_dic, eck_dic)
     for key in common_keys:
         df1=nwm_dic[key].copy()
@@ -121,7 +125,6 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
     finaloutput_path = base_path / 'Complete_inputs4stats.csv'
     finaloutput_path.parent.mkdir(parents=True, exist_ok=True)
     complete.to_csv(finaloutput_path, index=True)
-
     return complete, common_keys
 
 def seasons(df):
