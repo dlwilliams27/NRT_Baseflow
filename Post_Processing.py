@@ -1,13 +1,11 @@
-import pathlib
+
 import HydroErr as he
 import numpy as np
 import xarray as xr
 import pandas as pd
 import re
 import pathlib as path
-import matplotlib.pyplot as plt
 import netCDF4 as nc
-from collections import defaultdict
 
 #creating initial file paths
 nwm_file_dir=r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\NWM_Results'
@@ -51,6 +49,7 @@ def nwm_processing(nwm_path, nwm_path_list):
                 nwm_tot = pd.merge(nwm_avg_base, nwm_avg_stream, left_index=True, right_index=True)
                 nwm_tot.reset_index(inplace=True)
                 nwm_tot.set_index('date', inplace=True)
+                nwm_tot.dropna(how='any', inplace=True)
                 nwm_dic[gage] = nwm_tot
             else:
                 print(f"No match for file {nc}.")
@@ -88,14 +87,14 @@ def usgs_processing(usgs_path):
                             usgs = usgs['Q']
                             usgs_dic[gage2] = usgs
                     except KeyError:
-                        print(f"Column indexing error for file: {file}")
+                        print(f"Column indexing error for file: {file.name}")
                         continue
     return usgs_dic
 
 #process through each transformed eckhardt baseflow file
 def eck_processing(usgs_path):
     print("Running Eck Processing")
-    eck_path = usgs_path / "Eckhardt_2024"
+    eck_path = usgs_path / "Eckhardt_2025"
     for file in eck_path.glob('*.csv'):
         match3 = re.match(r"(\d+)_streamflow_qc_processed", file.name)
         if match3:
@@ -103,6 +102,7 @@ def eck_processing(usgs_path):
             eck=pd.read_csv(file)
             eck['date'] = pd.to_datetime(eck['date'])
             eck.set_index('date', inplace=True)
+            eck.dropna(how='any', inplace=True)
             eck_dic[gage]=eck
     return eck_dic
 
@@ -119,6 +119,7 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
         df3['gage']=key
         middle=pd.merge(df1, df2, left_index=True, right_index=True)
         final=pd.merge(middle, df3, left_index=True, right_index=True)
+        final.dropna(inplace=True)
         complete.append(final)
     complete=pd.concat(complete, ignore_index=False)
     complete['Q_was_non_numeric'] = (
@@ -133,7 +134,7 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
     finaloutput_path = base_path / 'Complete_inputs4stats.csv'
     finaloutput_path.parent.mkdir(parents=True, exist_ok=True)
     complete.to_csv(finaloutput_path, index=True)
-    return complete
+    return complete, common_keys
 
 #creates a new column which identifies the season of the year
 def seasons(df):
@@ -205,9 +206,18 @@ def stats(final_df):
 nwm_dic=nwm_processing(nwm_path, nwm_path_list)
 usgs_dic=usgs_processing(usgs_path)
 eck_dic=eck_processing(usgs_path)
+all_df, common_keys=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
+print(len(eck_dic))
+print(len(common_keys))
+stats(all_df)
+#check which gages had errors/didn't go through
+binary=all(key in eck_dic for key in common_keys)
+print(binary)
+if not binary:
+    missing=[key for key in common_keys if key not in eck_dic]
+    print("The missing gages:")
+    print(missing)
 
-all=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
-stats(all)
 
 
 
