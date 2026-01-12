@@ -27,6 +27,7 @@ usgs_path_list=[]
 #extract and process data from each nwm.nc file
 #output in a dictionary, gage:df
 def nwm_processing(nwm_path, nwm_path_list):
+    print("Running NWM Processing")
     #create list of nwm region folders
     for folder in nwm_path.iterdir():
         match1=re.match(r'region_(\d+)',folder.name)
@@ -35,12 +36,11 @@ def nwm_processing(nwm_path, nwm_path_list):
             nwm_path_list.append(path1)
     #iterating through files in each region folder
     for subfolder in nwm_path_list:
-        print("subfolder", subfolder)
         # issue is that these are glob objects and not iterable, need them to be pure paths
         for file in subfolder.glob('*.nc'):
             match = re.match(r"NWM_gage_(\d+)", file.name)
             if match:
-                gage = match[1]
+                gage = match[1].zfill(8)
                 ds=xr.open_dataset(file)
                 nwm = ds.to_dataframe()
                 nwm['baseflow'] = nwm['q_lateral'] + nwm['qBucket']
@@ -50,6 +50,7 @@ def nwm_processing(nwm_path, nwm_path_list):
                 nwm_avg_stream = nwm.groupby('date', sort=True)['streamflow'].mean()
                 nwm_tot = pd.merge(nwm_avg_base, nwm_avg_stream, left_index=True, right_index=True)
                 nwm_tot.reset_index(inplace=True)
+                nwm_tot.set_index('date', inplace=True)
                 nwm_dic[gage] = nwm_tot
             else:
                 print(f"No match for file {nc}.")
@@ -57,6 +58,7 @@ def nwm_processing(nwm_path, nwm_path_list):
 
 #process through each file in usgs streamflow
 def usgs_processing(usgs_path):
+    print("Running USGS Processing")
     stream_path= usgs_path / "USGS_Streamflow_2024"
     for folder in stream_path.iterdir():
         match1=re.match(r'(\d+)',folder.name)
@@ -68,7 +70,6 @@ def usgs_processing(usgs_path):
                     try:
                         match2 = re.match(r"(\d+)_streamflow_qc", file.name)
                         if match2:
-                            print("match:", match2.group(0))
                             gage2=match2.group(1)
                             usgs = pd.read_csv(file, sep=' ', on_bad_lines='skip')
                             if len(usgs.columns) == 7:
@@ -83,18 +84,18 @@ def usgs_processing(usgs_path):
                             usgs.dropna(inplace=True)
                             usgs['day']=usgs['day'].astype(int)
                             usgs['date'] = pd.to_datetime(usgs[['year', 'month', 'day']])
-                            usgs['date2'] = pd.to_datetime(usgs[['year', 'month', 'day']])
-                            usgs.set_index('date2', inplace=True)
-                            usgs = usgs[['date', 'Q']]
+                            usgs.set_index('date', inplace=True)
+                            usgs = usgs['Q']
                             usgs_dic[gage2] = usgs
                     except KeyError:
                         print(f"Column indexing error for file: {file}")
+                        continue
     return usgs_dic
 
 #process through each transformed eckhardt baseflow file
 def eck_processing(usgs_path):
+    print("Running Eck Processing")
     eck_path = usgs_path / "Eckhardt_2024"
-    print("eckpath", eck_path)
     for file in eck_path.glob('*.csv'):
         match3 = re.match(r"(\d+)_streamflow_qc_processed", file.name)
         if match3:
@@ -107,8 +108,10 @@ def eck_processing(usgs_path):
 
 #merge together NWM, USGS, and Eckhardt dfs based off of gage ID key
 def merge_dicts(nwm_dic, usgs_dic, eck_dic):
+    print("Merging Dictionaries")
     complete=[]
-    common_keys= set(nwm_dic).intersection(usgs_dic, eck_dic)
+    common_keys= list(set(nwm_dic).intersection(usgs_dic, eck_dic))
+    print("Common Keys:", common_keys)
     for key in common_keys:
         df1=nwm_dic[key].copy()
         df2=usgs_dic[key].copy()
@@ -117,17 +120,20 @@ def merge_dicts(nwm_dic, usgs_dic, eck_dic):
         middle=pd.merge(df1, df2, left_index=True, right_index=True)
         final=pd.merge(middle, df3, left_index=True, right_index=True)
         complete.append(final)
-        print(final)
     complete=pd.concat(complete, ignore_index=False)
-    print(complete['Eckhardt'].dtypes)
-    print(complete['Q'].dtypes)
+    complete['Q_was_non_numeric'] = (
+            pd.to_numeric(complete['Q'], errors='coerce').isna()
+            & complete['Q'].notna())
+    complete['Eckhardt']=pd.to_numeric(complete['Eckhardt'], errors='coerce')
+    complete['Q']=pd.to_numeric(complete['Q'], errors='coerce')
     complete['BFIobs']=(complete['Eckhardt'].astype(float))/(complete['Q'].astype(float)) #issue with data types here
+
     complete['BFIsim']=complete['baseflow']/complete['streamflow']
 
     finaloutput_path = base_path / 'Complete_inputs4stats.csv'
     finaloutput_path.parent.mkdir(parents=True, exist_ok=True)
     complete.to_csv(finaloutput_path, index=True)
-    return complete, common_keys
+    return complete
 
 #creates a new column which identifies the season of the year
 def seasons(df):
@@ -143,6 +149,7 @@ def seasons(df):
 
 #processes KGE, NSE, and Pearson R for all time frames and outputting
 def stats(final_df):
+    print("Calculating Statistics")
     #resets date index, and creates year, month, and season columns
     final_df.reset_index(inplace=True)
     final_df['year']=final_df['date'].dt.year
@@ -195,12 +202,12 @@ def stats(final_df):
     season_path.parent.mkdir(parents=True, exist_ok=True)
     season_stats.to_csv(season_path, index=True)
 
-if __name__ == '__main__':
-    nwm_dic=nwm_processing(nwm_path, nwm_path_list)
-    usgs_dic=usgs_processing(usgs_path)
-    eck_dic=eck_processing(usgs_path)
-    all, common_keys=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
-    stats(all)
+nwm_dic=nwm_processing(nwm_path, nwm_path_list)
+usgs_dic=usgs_processing(usgs_path)
+eck_dic=eck_processing(usgs_path)
+
+all=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
+stats(all)
 
 
 
