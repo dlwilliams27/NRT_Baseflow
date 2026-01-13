@@ -207,15 +207,29 @@ nwm_dic=nwm_processing(nwm_path, nwm_path_list)
 usgs_dic=usgs_processing(usgs_path)
 eck_dic=eck_processing(usgs_path)
 all_df, common_keys=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
-print(len(eck_dic))
-print(len(common_keys))
+print(len(eck_dic)) #660 #all being read in file
+print(len(nwm_dic)) #640 #all accounted for in files, missing some/not downloaded
+print(len(usgs_dic)) #666
+print(len(common_keys)) #627
 stats(all_df)
 #check which gages had errors/didn't go through
 binary=all(key in eck_dic for key in common_keys)
+binary1=all(key in nwm_dic for key in common_keys)
+binary2=all(key in usgs_dic for key in common_keys)
 print(binary)
+print(binary1)
+print(binary2)
 if not binary:
     missing=[key for key in common_keys if key not in eck_dic]
-    print("The missing gages:")
+    print("The missing Eck gages:")
+    print(missing)
+if not binary1:
+    missing=[key for key in common_keys if key not in nwm_dic]
+    print("The missing NWM gages:")
+    print(missing)
+if not binary2:
+    missing=[key for key in common_keys if key not in usgs_dic]
+    print("The missing USGS gages:")
     print(missing)
 
 
