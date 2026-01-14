@@ -208,9 +208,9 @@ usgs_dic=usgs_processing(usgs_path)
 eck_dic=eck_processing(usgs_path)
 all_df, common_keys=merge_dicts(nwm_dic=nwm_dic, usgs_dic=usgs_dic, eck_dic=eck_dic)
 print(len(eck_dic)) #660 #all being read in file
-print(len(nwm_dic)) #640 #all accounted for in files, missing some/not downloaded
+print(len(nwm_dic)) #670 #all accounted for in files, missing some/not downloaded
 print(len(usgs_dic)) #666
-print(len(common_keys)) #627
+print(len(common_keys)) #657
 stats(all_df)
 #check which gages had errors/didn't go through
 binary=all(key in eck_dic for key in common_keys)
