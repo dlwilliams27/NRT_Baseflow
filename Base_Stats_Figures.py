@@ -1,5 +1,7 @@
 import plotly.graph_objects as go
+import numpy as np
 import pandas as pd
+import pathlib as path
 
 #I want to add a column into each of these files which has their region number...
 region_data=r"C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project\CAMELS_gages.xlsx"
@@ -33,12 +35,25 @@ final_df['gage_id']=final_df['gage_id'].astype(str).str.zfill(8)
 o_stats.rename(columns={'gage':'gage_id'}, inplace=True)
 o_stats=pd.merge(o_stats,final_df,how='inner',on='gage_id')
 print(o_stats.head())
+output_path=path.Path(r'C:\Users\Delanie Williams\OneDrive - The University of Alabama\Research\Baseflow Project')
+o_stats.to_csv(output_path / "StatswRegion.csv")
 
-fig=go.Figure()
+
+#Box Plot
+fig=go.Figure(layout_yaxis_range=[-40,10])
+c = ['hsl('+str(h)+',50%'+',50%)' for h in np.linspace(0, 360, 19)]
 for i in range (0,19):
     ex=o_stats['kge_12_o'].loc[o_stats['region']==i]
-    fig.add_trace(go.Box(y=ex))
+    fig.add_trace(go.Box(y=ex, name=f'Region {i}', boxpoints='outliers', marker_color=c[i]))
+fig.update_layout(xaxis=dict(showgrid=True, title=dict(text='Region')),
+                  yaxis=dict(title=dict(text='KGE Value')), title=dict(text='Overall KGE'), font=dict(size=16),
+                  paper_bgcolor='rgb(233, 233, 233)',
+                  plot_bgcolor='rgb(233, 233, 233)')
+fig.update_xaxes(showticklabels=False)
+fig.add_hline(y=1.0, line_dash='dot',annotation_text= "KGE Value Boundary", opacity=0.50, fillcolor='silver')
 fig.show()
+
+
 
 
 
